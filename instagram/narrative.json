@@ -1,0 +1,15 @@
+{
+  "updated": "",
+  "names": {},
+  "verdict_html": "Not enough settled Reels yet to say anything. Lessons appear here once at least three Reels are 48 hours old.",
+  "lessons": [],
+  "rewrites": {},
+  "checklist": [],
+  "changelog": [],
+  "notes": [
+    "<b>Small sample.</b> {{n_videos}} Reels with {{views_range}} views each. Curves move while a Reel is young, so treat anything under 48 hours old as provisional.",
+    "<b>Where the numbers come from.</b> Retention is Instagram's own per-second Reel insights curve (the one the phone app shows), read from your signed-in session in its own cmux browser profile. The app rounds down, so the page can read up to a point higher than the phone. Transcripts are local Whisper with word timestamps. Visual notes are one Gemini watch pass per Reel when a Gemini key is set; the first frames shown are real frames.",
+    "<b>Measured vs explained.</b> Numbers with a second next to them are measured. Anything marked <i>possible explanation</i> is a hypothesis: a drop that lines up with a sentence does not prove the sentence caused it.",
+    "<b>Refresh it.</b> Run <span class=\"mono\">/retention-teardown-instagram</span> in Claude Code, inside cmux."
+  ]
+}

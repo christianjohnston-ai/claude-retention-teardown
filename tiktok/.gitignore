@@ -1,0 +1,14 @@
+# Everything a run writes is personal analytics. It stays on your Mac and never reaches this public repository.
+# accounts/<name>/ holds library/ (videos, frames, transcripts, curves), runs/, narrative.json, the page and media/.
+accounts/
+library/
+runs/
+media/
+*.mp4
+# Your keys. .env.example (placeholder names only) is the file that is committed.
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Instagram Retention Teardown</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (max 1080). One wide instrument panel (all curves: grey = each video, ink = account median, accent = selected video), then lessons, then a split explorer. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#111418; --ink-2:#4b5360; --ink-3:#7a8392; --rule:#e2e5ea; --wash:#eef1f5;
+  --accent:#d95926; --accent-wash:#fcebe3; --violet:#4a3aa7; --violet-wash:#ecebf8;
+  --loss:#d03b3b; --loss-wash:#fbeaea; --hold:#0c7a0c; --hold-wash:#e6f4e6;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15171b; --panel:#1c1f24; --ink:#f2f3f5; --ink-2:#b9bfc9; --ink-3:#8a919c; --rule:#2e333a; --wash:#23272d;
+  --accent:#ec7a4c; --accent-wash:#3a2a22; --violet:#9085e9; --violet-wash:#2a2741;
+  --loss:#e66767; --loss-wash:#3a2224; --hold:#4cc44c; --hold-wash:#1f3220; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171b; --panel:#1c1f24; --ink:#f2f3f5; --ink-2:#b9bfc9; --ink-3:#8a919c; --rule:#2e333a; --wash:#23272d;
+  --accent:#ec7a4c; --accent-wash:#3a2a22; --violet:#9085e9; --violet-wash:#2a2741;
+  --loss:#e66767; --loss-wash:#3a2224; --hold:#4cc44c; --hold-wash:#1f3220; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--body);padding-inline:16px}
+.wrap{max-width:1080px;margin:0 auto;padding-block:40px 80px;display:grid;gap:56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(34px,6vw,56px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(24px,3.4vw,32px);font-weight:700;letter-spacing:-.01em}
+h3{font-size:19px;font-weight:700}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.stack{display:grid;gap:14px}
+header{display:grid;gap:16px}
+.lede{font-size:18px;color:var(--ink-2)}
+.verdict{border-left:3px solid var(--violet);padding:4px 0 4px 18px;font-size:19px;max-width:62ch}
+.verdict b{color:var(--violet)}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:20px}
+.chart-head{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{font:500 13px var(--body);background:transparent;color:var(--ink-2);border:0;padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+#chart{position:relative}
+#chart svg{display:block;width:100%;height:auto}
+#tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:220px;max-width:300px;line-height:1.45}
+.table-wrap{overflow-x:auto;margin-top:18px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:760px}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
+th{font:500 11.5px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--wash)}
+tbody tr.sel{background:var(--accent-wash)}
+tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.best{font-weight:600;color:var(--hold)}
+.dim{color:var(--ink-3)}
+.prov{font:500 10.5px var(--mono);color:var(--ink-3);border:1px solid var(--rule);border-radius:999px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.lessons{display:grid;gap:18px}
+.lesson{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:22px;background:var(--panel);border:1px solid var(--rule);border-radius:10px}
+.lesson .n{font:500 12px var(--mono);color:var(--violet);letter-spacing:.06em;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{font:600 10.5px/1 var(--mono);letter-spacing:.06em;padding:4px 7px;border-radius:999px;text-transform:uppercase}
+.pill.holding{background:var(--hold-wash);color:var(--hold)}
+.pill.new{background:var(--violet-wash);color:var(--violet)}
+.pill.weakening{background:var(--loss-wash);color:var(--loss)}
+.pill.retired{background:var(--wash);color:var(--ink-3)}
+.ev{background:var(--wash);border-radius:8px;padding:12px 14px;font-size:14px;color:var(--ink-2);display:grid;gap:6px}
+.ev q{font-style:normal;color:var(--ink);quotes:none}
+.do{font-size:14.5px}
+.do b{color:var(--violet)}
+.cite{font:12px var(--mono);color:var(--ink-3)}
+.hyp{border-left:3px solid var(--violet);padding:4px 0 4px 12px;font-size:14px;color:var(--ink-2)}
+.hyp .lab{font:600 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--violet);display:block;margin-bottom:2px}
+.nocurve{margin-top:14px;font-size:13.5px;color:var(--ink-2)}
+.nocurve li{margin:4px 0}
+.frames{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.frames figure{margin:0;display:grid;gap:6px}
+.frames img{border-radius:6px;border:1px solid var(--rule);width:100%}
+.frames figcaption{font-size:12px;color:var(--ink-3);line-height:1.3}
+@media (max-width:640px){.frames{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+.tabs button{font:500 13px var(--body);border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:999px;padding:7px 14px;cursor:pointer}
+.tabs button[aria-selected="true"]{border-color:var(--accent);color:var(--ink);font-weight:600;background:var(--accent-wash)}
+.tabs select{font:500 14px var(--body);padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);max-width:100%}
+.explorer{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px}
+@media (max-width:760px){.explorer{grid-template-columns:minmax(0,1fr)}}
+.side{display:grid;gap:12px;align-content:start}
+.side .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.side img{border-radius:6px;border:1px solid var(--rule);width:100%}
+.side .cap{font-size:11.5px;color:var(--ink-3)}
+.side .clip{width:100%;aspect-ratio:9/16;border-radius:8px;background:#000;display:block}
+a.watch{font:500 12px var(--mono);color:var(--accent);white-space:nowrap}
+a.watch.big{font-size:13.5px;font-weight:600}
+.sec.playing{box-shadow:inset 3px 0 0 var(--accent)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;text-align:right;font-family:var(--mono)}
+.log{position:relative;max-height:620px;overflow-y:auto;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}
+.sec{display:grid;grid-template-columns:44px 110px minmax(0,1fr);gap:10px;padding:7px 12px;border-bottom:1px solid var(--rule);font-size:13.5px;align-items:start}
+.sec:last-child{border-bottom:0}
+.sec .t{font-family:var(--mono);color:var(--ink-3)}
+.bar{position:relative;height:16px;background:var(--wash);border-radius:3px;overflow:hidden;margin-top:3px}
+.bar span{position:absolute;inset:0 auto 0 0;border-radius:3px 4px 4px 3px;background:var(--accent)}
+.bar em{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.bar b{position:absolute;right:4px;top:0;font:500 10.5px/16px var(--mono);color:var(--ink)}
+.sec .vis{display:block;color:var(--ink-3);font-size:12px;margin-top:2px}
+.sec.big{background:var(--loss-wash)}
+.sec.big .drop{color:var(--loss);font:600 11.5px var(--mono);margin-left:6px}
+.sec.flat{background:var(--hold-wash)}
+.keyline{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink-3);margin-top:10px}
+.keyline span{display:inline-flex;gap:6px;align-items:center}
+.keyline i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.rw{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px;display:grid;gap:10px;align-content:start;min-width:0}
+.was{font-size:13.5px;color:var(--ink-3)}
+.was s{text-decoration-color:var(--loss)}
+.now{font-family:var(--display);font-size:18px;font-weight:500;line-height:1.3}
+.meta{font-size:13px;color:var(--ink-2);display:grid;gap:4px}
+.meta b{font-weight:600;color:var(--ink)}
+ol.check{margin:0;padding-left:22px;display:grid;gap:8px;max-width:70ch}
+ol.check li::marker{font-family:var(--mono);color:var(--violet)}
+.log-list{display:grid;gap:8px;margin:0;padding:0;list-style:none;max-width:76ch}
+.log-list li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;font-size:14px;color:var(--ink-2)}
+.log-list .d{font-family:var(--mono);color:var(--ink-3)}
+.fine{font-size:13.5px;color:var(--ink-2);display:grid;gap:8px}
+a{color:var(--violet)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">@__HANDLE__ · Instagram · __N__ Reels analyzed__SINCE__ · updated __UPDATED__</div>
+  <h1>Retention Teardown</h1>
+  <p class="lede">Your per-second retention curves from Instagram's Reel insights (the numbers the phone app shows), lined up with what you said and what was on screen, and compared with your own median at every second. Refreshed every time you run <span class="mono">/retention-teardown-instagram</span>.</p>
+  <p class="verdict">__VERDICT__</p>
+</header>
+
+<section class="stack">
+  <div class="eyebrow">The curves</div>
+  <h2>Every Reel, second by second</h2>
+  <div class="panel">
+    <div class="chart-head">
+      <div class="legend">
+        <span><i style="background:var(--ink-3);opacity:.5"></i>Each Reel (dashed = under 48 h old)</span>
+        <span><i style="background:var(--ink)"></i>Median of settled Reels</span>
+        <span><i style="background:var(--accent)"></i><span id="selname">Selected</span></span>
+      </div>
+      <div class="seg" role="group" aria-label="Time range">
+        <button type="button" id="r15" aria-pressed="true">First 15 s</button>
+        <button type="button" id="rall" aria-pressed="false">Full length</button>
+      </div>
+    </div>
+    <div id="chart"><div id="tip" hidden></div></div>
+    <p class="dim" style="font-size:12.5px;margin-top:6px">Click any row to highlight that Reel here and open it in the second-by-second explorer.</p>
+    <div class="table-wrap"><table id="tbl"></table></div>
+  </div>
+  __NOCURVE__
+</section>
+
+<section class="stack">
+  <div class="eyebrow">What the data says</div>
+  <h2>Lessons from your own numbers</h2>
+  <div class="lessons">__LESSONS__</div>
+</section>
+
+<section class="stack">
+  <div class="eyebrow">Second by second</div>
+  <h2>Every second, every word, every drop</h2>
+  <p style="color:var(--ink-2)">Pick a Reel. Each row is one measured second: the share of viewers still there (the black tick is the median of your settled Reels at that second), what you said, what changed on screen (Gemini's watch notes, approximate), and how many likes landed in that second (♥).</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="explorer">
+    <div class="side" id="side"></div>
+    <div>
+      <div class="log" id="log"></div>
+      <div class="keyline"><span><i style="background:var(--loss-wash);border:1px solid var(--loss)"></i>lost 5+ points in this second</span><span><i style="background:var(--hold-wash);border:1px solid var(--hold)"></i>flat: kept everyone for 2+ seconds</span><span><i style="background:var(--ink)"></i>account median</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="stack">
+  <div class="eyebrow">Apply it</div>
+  <h2>Your hooks, rewritten</h2>
+  <p style="color:var(--ink-2)">Drafts in your voice, built from lines and visuals you already have. Newest videos first. Each gets a new first frame, first sentence, super hook, and the open loop it keeps.</p>
+  <div class="rw">__REWRITES__</div>
+</section>
+
+<section class="stack">
+  <div class="eyebrow">Before you hit record</div>
+  <h2>The script checklist</h2>
+  <ol class="check">__CHECKLIST__</ol>
+</section>
+
+<section class="stack">
+  <div class="eyebrow">Update log</div>
+  <h2>What changed, run by run</h2>
+  <ul class="log-list">__CHANGELOG__</ul>
+</section>
+
+<section class="stack">
+  <div class="eyebrow">How to read this</div>
+  <div class="fine">__NOTES__</div>
+</section>
+</div>
+
+<script>
+const D = __DATA__;          // newest first
+const MED = __MEDIAN__;      // account median per second
+let range = 15, sel = D.length ? D[0].id : null;
+try { const s = localStorage.getItem('rt-sel'); if (s && D.some(v => v.id === s)) sel = s; } catch (e) {}
+const byId = id => D.find(v => v.id === id);
+const pct = x => x == null ? '-' : Math.round(x * 100) + '%';
+const mmss = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+
+function select(id, scroll) {
+  sel = id; try { localStorage.setItem('rt-sel', id); } catch (e) {}
+  chart(); table(); tabs(); explore();
+  if (scroll) document.getElementById('tabs').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function table() {
+  const cols = [
+    ['Posted', v => v.posted_ts, (x, v) => v.posted.slice(5, 10)],
+    ['Reel', null, (x, v) => v.name + (v.settled ? '' : ` <span class="prov">provisional · ${v.age_h}h</span>`) +
+      ` <a class="watch" href="${v.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Watch ↗</a>`],
+    ['Views', v => v.views, x => (x ?? 0).toLocaleString()],
+    ['At 1 s', v => v.ret[1], pct], ['At 3 s', v => v.ret[3], pct], ['At 10 s', v => v.ret[10], pct],
+    ['At 30 s', v => v.ret[30] ?? null, pct],
+    ['Avg watch', v => v.avg && v.dur ? v.avg / v.dur : null, (x, v) => v.avg == null ? '-' : v.avg.toFixed(1) + ' / ' + Math.round(v.dur) + ' s'],
+    ['Skip rate', v => v.skip == null ? null : -v.skip, (x, v) => v.skip == null ? '-' : v.skip.toFixed(1) + '%'],
+    ['Follows', v => v.follows, x => x ?? '-'],
+    ['Saves', v => v.saves, x => x ?? '-'],
+  ];
+  const best = f => Math.max(...D.map(f).filter(x => x != null));
+  let h = '<thead><tr>' + cols.map(c => `<th>${c[0]}</th>`).join('') + '</tr></thead><tbody>';
+  D.forEach(v => {
+    h += `<tr data-id="${v.id}" tabindex="0" class="${v.id === sel ? 'sel' : ''}">`;
+    cols.forEach((c, i) => {
+      const val = c[1] ? c[1](v) : null;
+      const isBest = c[1] && i > 1 && val != null && D.length > 1 && val === best(c[1]);
+      h += `<td class="${isBest ? 'best' : ''}">${c[2](val, v)}</td>`;
+    });
+    h += '</tr>';
+  });
+  const t = document.getElementById('tbl'); t.innerHTML = h + '</tbody>';
+  t.querySelectorAll('tbody tr').forEach(r => {
+    r.onclick = () => select(r.dataset.id, false);
+    r.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(r.dataset.id, false); } };
+  });
+}
+
+function chart() {
+  const box = document.getElementById('chart');
+  const W = Math.max(320, box.clientWidth), H = Math.round(Math.min(420, Math.max(260, W * 0.42)));
+  const m = {l: 44, r: W < 560 ? 16 : 120, t: 14, b: 34};
+  const maxT = range === 15 ? 15 : Math.max(...D.map(v => v.ret.length - 1));
+  const x = t => m.l + (t / maxT) * (W - m.l - m.r), y = p => m.t + (1 - p) * (H - m.t - m.b);
+  const line = arr => arr.slice(0, maxT + 1).map((p, t) => p == null ? null : `${x(t).toFixed(1)},${y(p).toFixed(1)}`).filter(Boolean).join(' ');
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Retention curves">`;
+  [0, .25, .5, .75, 1].forEach(p => {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(p)}" y2="${y(p)}" stroke="var(--rule)"/>`;
+    s += `<text x="${m.l - 8}" y="${y(p) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">${p * 100}%</text>`;
+  });
+  const step = range === 15 ? 3 : (maxT > 90 ? 20 : 15);
+  for (let t = 0; t <= maxT; t += step) s += `<text x="${x(t)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">${t}s</text>`;
+  D.forEach(v => { if (v.id !== sel) s += `<polyline points="${line(v.ret)}" fill="none" stroke="var(--ink-3)" stroke-opacity=".35" stroke-width="1.5" stroke-linejoin="round"${v.settled ? '' : ' stroke-dasharray="4 3"'}/>`; });
+  s += `<polyline points="${line(MED)}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const sv = byId(sel);
+  if (sv) s += `<polyline points="${line(sv.ret)}" fill="none" stroke="var(--panel)" stroke-width="5" stroke-linejoin="round"/><polyline points="${line(sv.ret)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  if (m.r > 100) {
+    const lab = [];
+    const endOf = arr => { const i = Math.min(maxT, arr.length - 1); return {i, p: arr[i]}; };
+    const me = endOf(MED); if (me.p != null) lab.push({y: y(me.p), t: 'median', c: 'var(--ink)', cx: x(me.i)});
+    if (sv) { const e = endOf(sv.ret); lab.push({y: y(e.p), t: sv.name.length > 16 ? sv.name.slice(0, 15) + '…' : sv.name, c: 'var(--accent)', cx: x(e.i)}); }
+    lab.sort((a, b) => a.y - b.y); for (let k = 1; k < lab.length; k++) if (lab[k].y - lab[k - 1].y < 14) lab[k].y = lab[k - 1].y + 14;
+    lab.forEach(l => { s += `<text x="${W - m.r + 8}" y="${l.y + 4}" font-size="11.5" fill="${l.c}" font-weight="600">${l.t}</text>`; });
+  }
+  s += `<line id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-dasharray="3 3" visibility="hidden"/>`;
+  s += `<rect id="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/></svg>`;
+  box.querySelectorAll('svg').forEach(n => n.remove());
+  box.insertAdjacentHTML('afterbegin', s);
+  document.getElementById('selname').textContent = sv ? sv.name : 'Selected';
+  const tip = document.getElementById('tip'), xh = box.querySelector('#xh'), hit = box.querySelector('#hit');
+  hit.addEventListener('pointermove', e => {
+    const r = box.getBoundingClientRect(), sx = (e.clientX - r.left) * (W / r.width);
+    const t = Math.max(0, Math.min(maxT, Math.round((sx - m.l) / (W - m.l - m.r) * maxT)));
+    xh.setAttribute('x1', x(t)); xh.setAttribute('x2', x(t)); xh.setAttribute('visibility', 'visible');
+    const vals = D.map(v => v.ret[t]).filter(p => p != null);
+    tip.innerHTML = `<div class="mono" style="color:var(--ink-3)">${mmss(t)}</div>` +
+      (sv && sv.ret[t] != null ? `<div style="margin-top:4px"><b style="color:var(--accent)">${pct(sv.ret[t])}</b> ${sv.name}<div style="color:var(--ink-3);font-size:11.5px">“${sv.words[t] || '…'}”</div></div>` : '') +
+      (vals.length ? `<div style="margin-top:4px"><b>${pct(MED[t])}</b> median · range ${pct(Math.min(...vals))} to ${pct(Math.max(...vals))} across ${vals.length} Reels</div>` : `<div style="margin-top:4px" class="dim">No Reels with a curve yet.</div>`);
+    tip.hidden = false;
+    const px = x(t) * (r.width / W);
+    tip.style.left = (px > r.width / 2 ? px - tip.offsetWidth - 12 : px + 12) + 'px'; tip.style.top = '10px';
+  });
+  hit.addEventListener('pointerleave', () => { tip.hidden = true; xh.setAttribute('visibility', 'hidden'); });
+}
+
+function tabs() {
+  const el = document.getElementById('tabs');
+  if (D.length > 10) {
+    el.innerHTML = `<label for="vidsel" class="eyebrow">Reel</label><select id="vidsel">${D.map(v => `<option value="${v.id}" ${v.id === sel ? 'selected' : ''}>${v.posted.slice(5, 10)} · ${v.name}</option>`).join('')}</select>`;
+    document.getElementById('vidsel').onchange = e => select(e.target.value, false);
+  } else {
+    el.setAttribute('role', 'tablist');
+    el.innerHTML = D.map(v => `<button type="button" role="tab" aria-selected="${v.id === sel}" data-id="${v.id}">${v.name}</button>`).join('');
+    el.querySelectorAll('button').forEach(b => b.onclick = () => select(b.dataset.id, false));
+  }
+}
+
+function explore() {
+  const v = byId(sel); if (!v) return;
+  document.getElementById('side').innerHTML = `
+    ${v.mp4 ? `<video class="clip" src="${v.mp4}" poster="${v.f0}" controls preload="metadata" playsinline onerror="this.remove()"></video>` : ''}
+    <a class="watch big" href="${v.url}" target="_blank" rel="noopener">Watch on Instagram ↗</a>
+    <div class="pair"><div><img src="${v.f0}" alt="Frame at 0 s of ${v.name}"><div class="cap">0.0 s</div></div><div><img src="${v.f2}" alt="Frame at 2.2 s of ${v.name}"><div class="cap">2.2 s</div></div></div>
+    <dl class="kv"><dt>Posted</dt><dd>${v.posted}</dd><dt>Views</dt><dd>${(v.views ?? 0).toLocaleString()}</dd><dt>Length</dt><dd>${v.dur.toFixed(1)} s</dd><dt>Avg watch</dt><dd>${v.avg == null ? '-' : v.avg.toFixed(1) + ' s'}</dd><dt>Skip rate</dt><dd>${v.skip == null ? '-' : v.skip.toFixed(1) + '%'}</dd><dt>Likes · saves</dt><dd>${v.likes ?? '-'} · ${v.saves ?? '-'}</dd><dt>Comments · shares</dt><dd>${v.comments ?? '-'} · ${v.shares ?? '-'}</dd><dt>Follows · profile visits</dt><dd>${v.follows ?? '-'} · ${v.visits ?? '-'}</dd><dt>Non-follower views</dt><dd>${v.nonfol == null || !v.views ? '-' : Math.round(v.nonfol / v.views * 100) + '%'}</dd><dt>Sources</dt><dd>${v.sources || '-'}</dd><dt>Curve</dt><dd>${v.npts} measured points${v.settled ? '' : ' · provisional (' + v.age_h + ' h old)'}</dd><dt>Captures</dt><dd>${v.snaps}</dd></dl>`;
+  const ev = {}; v.events.forEach(([t, txt]) => { const k = Math.floor(t); (ev[k] = ev[k] || []).push(txt); });
+  let h = '';
+  v.ret.forEach((p, t) => {
+    const drop = t + 1 < v.ret.length ? p - v.ret[t + 1] : 0;
+    const flat = t > 3 && t + 2 < v.ret.length && p - v.ret[t + 2] <= 0.004;
+    const cls = drop >= 0.05 ? 'big' : (flat ? 'flat' : '');
+    const med = MED[t] != null ? `<em style="left:calc(${MED[t] * 100}% - 1px)"></em>` : '';
+    h += `<div class="sec ${cls}"><span class="t">${mmss(t)}</span>
+      <div class="bar"><span style="width:${p * 100}%"></span>${med}<b>${(p * 100).toFixed(1)}%</b></div>
+      <div><span>${v.words[t] || '<span class="dim">(silence)</span>'}</span>${drop >= 0.05 ? `<span class="drop">-${Math.round(drop * 100)} next</span>` : ''}${ev[t] ? `<span class="vis">▸ ${ev[t].join(' · ')}</span>` : ''}${v.likest && v.likest[t] ? `<span class="vis">♥ ${v.likest[t]}</span>` : ''}</div></div>`;
+  });
+  document.getElementById('log').innerHTML = h;
+  // While the clip plays, mark the second being heard in the per-second log
+  const clip = document.querySelector('#side video'), log = document.getElementById('log');
+  if (clip) clip.ontimeupdate = () => {
+    const rows = log.querySelectorAll('.sec'), k = Math.min(rows.length - 1, Math.floor(clip.currentTime));
+    const cur = log.querySelector('.sec.playing'); if (cur === rows[k]) return;
+    if (cur) cur.classList.remove('playing');
+    if (rows[k]) { rows[k].classList.add('playing'); log.scrollTop = rows[k].offsetTop - log.clientHeight / 2; }
+  };
+}
+
+function setRange(r) { range = r; document.getElementById('r15').setAttribute('aria-pressed', r === 15); document.getElementById('rall').setAttribute('aria-pressed', r !== 15); chart(); }
+document.getElementById('r15').onclick = () => setRange(15);
+document.getElementById('rall').onclick = () => setRange(999);
+chart(); table(); tabs(); explore();
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(chart, 120); });
+</script>
+</body>
+</html>

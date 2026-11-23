@@ -1,0 +1,14 @@
+{
+  "updated": "",
+  "names": {},
+  "verdict_html": "Not enough settled videos yet to say anything. Lessons appear here once at least three videos are 48 hours old.",
+  "lessons": [],
+  "rewrites": {},
+  "checklist": [],
+  "changelog": [],
+  "notes": [
+    "<b>Small sample.</b> {{n_videos}} public videos with {{views_range}} views each. Curves move while a video is young, so treat anything under 48 hours old as provisional.",
+    "<b>Where the numbers come from.</b> Retention is TikTok Studio's own per-second curve, pulled fresh every run from your signed-in Studio tab. Transcripts are local Whisper with word timestamps. Visual notes are one Gemini watch pass per video when a Gemini key is set; the first frames shown are real frames. Private and under-review posts are skipped.",
+    "<b>Refresh it.</b> Run <span class=\"mono\">/retention-teardown</span> in Claude Code, inside cmux, with this account signed in inside its own cmux browser profile."
+  ]
+}

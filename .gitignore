@@ -1,0 +1,2 @@
+# The shared Python environment SETUP.md creates (mlx-whisper, requests). Machine-specific; never committed.
+.venv/
